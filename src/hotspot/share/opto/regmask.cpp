@@ -256,6 +256,22 @@ OptoReg::Name RegMask::find_first_set(const int size) const {
   return OptoReg::Bad;
 }
 
+OptoReg::Name RegMask::find_random_set(const int size) const {
+  verify_sets(size);
+  int tries = 20;
+  while (tries--) {
+    for (int i = 0; i < RM_SIZE; i++) {
+      if (_A[i] && (os::random() % 5) == 0 ) {
+        int bit = _A[i] & -_A[i]; // Extract low bit
+        // Convert to bit number, return hi bit in pair
+        return OptoReg::Name((i<<_LogWordBits)+find_lowest_bit(bit)+(size-1));
+      }
+    }
+  }
+  // fall back to find_first_set
+  return find_first_set(size);
+}
+
 //------------------------------clear_to_sets----------------------------------
 // Clear out partial bits; leave only aligned adjacent bit pairs
 void RegMask::clear_to_sets(const int size) {

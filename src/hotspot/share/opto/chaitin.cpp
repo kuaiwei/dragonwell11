@@ -1397,6 +1397,17 @@ OptoReg::Name PhaseChaitin::bias_color( LRG &lrg, int chunk ) {
     }
   }
 
+  if (RandomVectorRegister && lrg._is_vector && chunk == 0) {
+    // log_warning(compilation)("try to random color vector lrg");
+    OptoReg::Name n = lrg.mask().find_random_set(lrg.num_regs());
+#ifndef PRODUCT
+    // tty->print("randon reg:");
+    // OptoReg::dump(n, tty);
+    // tty->print_cr("");
+#endif
+    return OptoReg::add(n,chunk);
+  }
+
   // If no bias info exists, just go with the register selection ordering
   if (lrg._is_vector || lrg.num_regs() == 2) {
     // Find an aligned set

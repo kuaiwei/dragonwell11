@@ -760,6 +760,9 @@
                                                                             \
   product(bool, UseProfiledLoopPredicate, true,                             \
           "move predicates out of loops based on profiling data")           \
+                                                                            \
+  product(bool, RandomVectorRegister, false,                                \
+          "random allocate vector register")                                \
 
 C2_FLAGS(DECLARE_DEVELOPER_FLAG, \
          DECLARE_PD_DEVELOPER_FLAG, \

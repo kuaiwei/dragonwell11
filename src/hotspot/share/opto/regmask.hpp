@@ -208,6 +208,7 @@ public:
   // HIGHEST register number in the set, or BAD if no sets.
   // Assert that the mask contains only bit sets.
   OptoReg::Name find_first_set(const int size) const;
+  OptoReg::Name find_random_set(const int size) const;
 
   // Clear out partial bits; leave only aligned adjacent bit sets of size.
   void clear_to_sets(const int size);
