@@ -88,7 +88,7 @@ void ArrayCopyNode::connect_outputs(GraphKit* kit, bool deoptimize_on_exception)
 }
 
 #ifndef PRODUCT
-const char* ArrayCopyNode::_kind_names[] = {"arraycopy", "arraycopy, validated arguments", "clone", "oop array clone", "CopyOf", "CopyOfRange"};
+const char* ArrayCopyNode::_kind_names[] = {"arraycopy", "arraycopy, validated arguments", "clone", "oop array clone", "CopyOf", "CopyOfRange", "copyMemory"};
 
 void ArrayCopyNode::dump_spec(outputStream *st) const {
   CallNode::dump_spec(st);

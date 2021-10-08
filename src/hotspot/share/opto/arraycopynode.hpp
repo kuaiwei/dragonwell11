@@ -39,11 +39,12 @@ private:
     CloneBasic,      // A clone that can be copied by 64 bit chunks
     CloneOop,        // An oop array clone
     CopyOf,          // Arrays.copyOf()
-    CopyOfRange      // Arrays.copyOfRange()
+    CopyOfRange,     // Arrays.copyOfRange()
+    CopyMemory       // Unsafe.copyMemory()
   } _kind;
 
 #ifndef PRODUCT
-  static const char* _kind_names[CopyOfRange+1];
+  static const char* _kind_names[CopyMemory+1];
 #endif
   // Is the alloc obtained with
   // AllocateArrayNode::Ideal_array_allocation() tighly coupled
