@@ -1,0 +1,7 @@
+b main
+r -Xlog:jit+inlining=debug -Xbatch -XX:-TieredCompilation -XX:-UseOnStackReplacement -XX:CompileCommandFile=./test.cmd AllocAndCopy 2
+handle SIGSEGV noprint nostop
+set breakpoint pending on
+#b LibraryCallKit::may_convert_arraycopy
+b Compile::find_intrinsic
+c
