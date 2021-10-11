@@ -254,6 +254,7 @@ class LibraryCallKit : public GraphKit {
   bool inline_unsafe_allocate();
   bool inline_unsafe_newArray(bool uninitialized);
   bool inline_unsafe_copyMemory();
+  bool inline_unsafe_copyMemoryJava();
   bool inline_native_currentThread();
 
   bool inline_native_time_funcs(address method, const char* funcName);
@@ -282,6 +283,7 @@ class LibraryCallKit : public GraphKit {
   JVMState* arraycopy_restore_alloc_state(AllocateArrayNode* alloc, int& saved_reexecute_sp);
   void arraycopy_move_allocation_here(AllocateArrayNode* alloc, Node* dest, JVMState* saved_jvms, int saved_reexecute_sp,
                                       uint new_idx);
+  bool may_convert_arraycopy(Node* src, Node* dest, Node* size);
 
   typedef enum { LS_get_add, LS_get_set, LS_cmp_swap, LS_cmp_swap_weak, LS_cmp_exchange } LoadStoreKind;
   bool inline_unsafe_load_store(BasicType type,  LoadStoreKind kind, AccessKind access_kind);
@@ -767,6 +769,7 @@ bool LibraryCallKit::try_to_inline(int predicate) {
   case vmIntrinsics::_nanoTime:                 return inline_native_time_funcs(CAST_FROM_FN_PTR(address, os::javaTimeNanos), "nanoTime");
   case vmIntrinsics::_allocateInstance:         return inline_unsafe_allocate();
   case vmIntrinsics::_copyMemory:               return inline_unsafe_copyMemory();
+  case vmIntrinsics::_copyMemoryJava:           return inline_unsafe_copyMemoryJava();
   case vmIntrinsics::_getLength:                return inline_native_getLength();
   case vmIntrinsics::_copyOf:                   return inline_array_copyOf(false);
   case vmIntrinsics::_copyOfRange:              return inline_array_copyOf(true);
@@ -4217,6 +4220,76 @@ bool LibraryCallKit::inline_fp_conversions(vmIntrinsics::ID id) {
   }
   set_result(_gvn.transform(result));
   return true;
+}
+
+// helper function to check if copyMemory can be converted as arraycopy
+bool LibraryCallKit::may_convert_arraycopy(Node* src, Node* dst, Node* size) {
+    log_debug(jit,inlining)("begin to convert copyMemory");
+    if (!dst->is_AddP()) return false;  // can not handle it , check java.nio.file.FileTreeIterator::fetchNextIfNeeded
+    Node* base = dst->as_AddP()->base_node();
+    AllocateArrayNode* alloc = tightly_coupled_allocation(base, NULL);
+    if (alloc==NULL) return false;
+
+    // check array length and size
+    Node* copy_size = ConvX2I(size); // todo: overflow check
+    Node* len = alloc->Ideal_length();
+    assert(alloc->adr_type()->isa_aryptr()->elem(), "sanity");
+    BasicType bt = alloc->adr_type()->is_aryptr()->elem()->array_element_basic_type();
+    Node* array_size;
+    switch(bt) {
+        case T_BOOLEAN:
+        case T_BYTE:
+            array_size = len;
+            break;
+        case T_CHAR:
+        case T_SHORT:
+            array_size = LShiftI(len, intcon(1));
+            break;
+        case T_INT:
+        case T_FLOAT:
+            array_size = LShiftI(len, intcon(2));
+            break;
+        case T_LONG:
+        case T_DOUBLE:
+            array_size = LShiftI(len, intcon(3));
+            break;
+        default:
+            assert( false, "only primitive type array could reach here");
+            return false;
+    }
+
+    if (array_size == copy_size)
+        return true;
+
+    return false;
+}
+
+//----------------------inline_unsafe_copyMemory-------------------------
+// public native void Unsafe.copyMemory(Object srcBase, long srcOffset, Object destBase, long destOffset, long bytes);
+bool LibraryCallKit::inline_unsafe_copyMemoryJava() {
+    if (callee()->is_static()) return false;  // caller must have the capability!
+    null_check_receiver();  // null-check receiver
+    if (stopped()) return true;
+
+    // C->set_has_unsafe_access(true);  // Mark eventual nmethod as "unsafe".
+
+    Node *src_ptr = argument(1);   // type: oop
+    Node *src_off = ConvL2X(argument(2));  // type: long
+    Node *dst_ptr = argument(4);   // type: oop
+    Node *dst_off = ConvL2X(argument(5));  // type: long
+    Node *size = ConvL2X(argument(7));  // type: long
+
+    assert(Unsafe_field_offset_to_byte_offset(11) == 11,
+           "fieldOffset must be byte-scaled");
+
+    Node *src = make_unsafe_address(src_ptr, src_off);
+    Node *dst = make_unsafe_address(dst_ptr, dst_off);
+
+    if (may_convert_arraycopy(src, dst, size)) {
+        // try to inline as array copy
+        log_debug(jit, inlining)("hit an unsafe copy memory which can be converted to array copy");
+    }
+    return false;
 }
 
 //----------------------inline_unsafe_copyMemory-------------------------

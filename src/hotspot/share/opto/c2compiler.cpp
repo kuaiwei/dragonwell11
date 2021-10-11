@@ -208,6 +208,7 @@ bool C2Compiler::is_intrinsic_supported(const methodHandle& method, bool is_virt
     if (!Matcher::match_rule_supported(Op_AryEq)) return false;
     break;
   case vmIntrinsics::_copyMemory:
+  case vmIntrinsics::_copyMemoryJava:
     if (StubRoutines::unsafe_arraycopy() == NULL) return false;
     break;
   case vmIntrinsics::_encodeISOArray:

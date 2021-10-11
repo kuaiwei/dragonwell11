@@ -789,6 +789,7 @@ public final class Unsafe {
      *
      * @since 1.7
      */
+    @HotSpotIntrinsicCandidate
     public void copyMemory(Object srcBase, long srcOffset,
                            Object destBase, long destOffset,
                            long bytes) {
