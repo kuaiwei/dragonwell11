@@ -504,6 +504,12 @@ void Compile::print_compile_messages() {
     tty->print_cr("** Bailout: Recompile without escape analysis          **");
     tty->print_cr("*********************************************************");
   }
+  if (do_iterative_escape_analysis() != DoEscapeAnalysis && PrintOpto) {
+    // Recompiling without iterative escape analysis
+    tty->print_cr("*********************************************************");
+    tty->print_cr("** Bailout: Recompile without iterative escape analysis**");
+    tty->print_cr("*********************************************************");
+  }
   if (_eliminate_boxing != EliminateAutoBox && PrintOpto) {
     // Recompiling without boxing elimination
     tty->print_cr("*********************************************************");
@@ -641,7 +647,7 @@ debug_only( int Compile::_debug_idx = 100000; )
 
 
 Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr_bci,
-                  bool subsume_loads, bool do_escape_analysis, bool eliminate_boxing,
+                  bool subsume_loads, bool do_escape_analysis, bool do_iterative_escape_analysis, bool eliminate_boxing,
                   bool do_locks_coarsening, DirectiveSet* directive)
                 : Phase(Compiler),
                   _env(ci_env),
@@ -661,6 +667,7 @@ Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr
                   _warm_calls(NULL),
                   _subsume_loads(subsume_loads),
                   _do_escape_analysis(do_escape_analysis),
+                  _do_iterative_escape_analysis(do_iterative_escape_analysis),
                   _eliminate_boxing(eliminate_boxing),
                   _failure_reason(NULL),
                   _code_buffer("Compile::Fill_buffer"),
@@ -987,6 +994,7 @@ Compile::Compile( ciEnv* ci_env,
     _orig_pc_slot_offset_in_bytes(0),
     _subsume_loads(true),
     _do_escape_analysis(false),
+    _do_iterative_escape_analysis(false),
     _eliminate_boxing(false),
     _failure_reason(NULL),
     _code_buffer("Compile::Fill_buffer"),
@@ -2320,27 +2328,36 @@ void Compile::Optimize() {
       if (major_progress()) print_method(PHASE_PHASEIDEAL_BEFORE_EA, 2);
       if (failing())  return;
     }
-    ConnectionGraph::do_analysis(this, &igvn);
+    bool progress;
+    do {
+      ConnectionGraph::do_analysis(this, &igvn);
 
-    if (failing())  return;
-
-    // Optimize out fields loads from scalar replaceable allocations.
-    igvn.optimize();
-    print_method(PHASE_ITER_GVN_AFTER_EA, 2);
-
-    if (failing())  return;
-
-    if (congraph() != NULL && macro_count() > 0) {
-      TracePhase tp("macroEliminate", &timers[_t_macroEliminate]);
-      PhaseMacroExpand mexp(igvn);
-      mexp.eliminate_macro_nodes();
-      igvn.set_delay_transform(false);
-
+      if (failing())  return;
+      int mcount = macro_count(); // Record number of allocations and locks before IGVN
+ 
+      // Optimize out fields loads from scalar replaceable allocations.
       igvn.optimize();
       print_method(PHASE_ITER_GVN_AFTER_ELIMINATION, 2);
 
       if (failing())  return;
-    }
+
+      if (congraph() != NULL && macro_count() > 0) {
+        TracePhase tp("macroEliminate", &timers[_t_macroEliminate]);
+        PhaseMacroExpand mexp(igvn);
+        mexp.eliminate_macro_nodes();
+        igvn.set_delay_transform(false);
+
+        igvn.optimize();
+        print_method(PHASE_ITER_GVN_AFTER_ELIMINATION, 2);
+
+        if (failing())  return;
+      }
+      progress = do_iterative_escape_analysis() &&
+                 (macro_count() < mcount) &&
+                 ConnectionGraph::has_candidates(this);
+      // Try again if candidates exist and made progress
+      // by removing some allocations and/or locks.
+    } while (progress);
   }
 
   // Loop transforms on the ideal graph.  Range Check Elimination,
