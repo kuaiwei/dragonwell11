@@ -1647,7 +1647,7 @@ bool LibraryCallKit::inline_string_toBytesU() {
       // based on the escape status of the AllocateNode.
       insert_mem_bar(Op_MemBarStoreStore, alloc->proj_out_or_null(AllocateNode::RawAddress));
     } else {
-      insert_mem_bar(Op_MemBarCPUOrder);
+      insert_mem_bar(Op_MemBarCPUOrder, NULL, 1);
     }
   } // original reexecute is set back here
 
@@ -1733,7 +1733,7 @@ bool LibraryCallKit::inline_string_getCharsU() {
       // based on the escape status of the AllocateNode.
       insert_mem_bar(Op_MemBarStoreStore, alloc->proj_out_or_null(AllocateNode::RawAddress));
     } else {
-      insert_mem_bar(Op_MemBarCPUOrder);
+      insert_mem_bar(Op_MemBarCPUOrder, NULL, 2);
     }
   }
 
@@ -2814,7 +2814,7 @@ bool LibraryCallKit::inline_unsafe_load_store(const BasicType type, const LoadSt
 bool LibraryCallKit::inline_unsafe_fence(vmIntrinsics::ID id) {
   // Regardless of form, don't allow previous ld/st to move down,
   // then issue acquire, release, or volatile mem_bar.
-  insert_mem_bar(Op_MemBarCPUOrder);
+  insert_mem_bar(Op_MemBarCPUOrder, NULL, 3);
   switch(id) {
     case vmIntrinsics::_loadFence:
       insert_mem_bar(Op_LoadFence);
@@ -3003,7 +3003,7 @@ bool LibraryCallKit::inline_native_isInterrupted() {
 
   // Ensure that it's not possible to move the load of TLS._osthread._interrupted flag
   // out of the function.
-  insert_mem_bar(Op_MemBarCPUOrder);
+  insert_mem_bar(Op_MemBarCPUOrder, NULL, 4);
 
   RegionNode* result_rgn = new RegionNode(PATH_LIMIT);
   PhiNode*    result_val = new PhiNode(result_rgn, TypeInt::BOOL);
@@ -4242,7 +4242,7 @@ bool LibraryCallKit::inline_unsafe_copyMemory() {
 
   // Conservatively insert a memory barrier on all memory slices.
   // Do not let writes of the copy source or destination float below the copy.
-  insert_mem_bar(Op_MemBarCPUOrder);
+  insert_mem_bar(Op_MemBarCPUOrder, NULL, 5);
 
   // Call it.  Note that the length argument is not scaled.
   make_runtime_call(RC_LEAF|RC_NO_FP,
@@ -4253,7 +4253,7 @@ bool LibraryCallKit::inline_unsafe_copyMemory() {
                     src, dst, size XTOP);
 
   // Do not let reads of the copy destination float above the copy.
-  insert_mem_bar(Op_MemBarCPUOrder);
+  insert_mem_bar(Op_MemBarCPUOrder, NULL, 6);
 
   return true;
 }
@@ -4295,7 +4295,7 @@ void LibraryCallKit::copy_to_clone(Node* obj, Node* alloc_obj, Node* obj_size, b
     // based on the escape status of the AllocateNode.
     insert_mem_bar(Op_MemBarStoreStore, alloc->proj_out_or_null(AllocateNode::RawAddress));
   } else {
-    insert_mem_bar(Op_MemBarCPUOrder);
+    insert_mem_bar(Op_MemBarCPUOrder, NULL, 7);
   }
 }
 
@@ -4356,7 +4356,7 @@ bool LibraryCallKit::inline_native_clone(bool is_virtual) {
 
     // Conservatively insert a memory barrier on all memory slices.
     // Do not let writes into the original float below the clone.
-    insert_mem_bar(Op_MemBarCPUOrder);
+    insert_mem_bar(Op_MemBarCPUOrder, NULL, 8);
 
     // paths into result_reg:
     enum {
@@ -5735,7 +5735,7 @@ bool LibraryCallKit::inline_reference_get() {
   Node* result = access_load_at(reference_obj, adr, adr_type, object_type, T_OBJECT, decorators);
   // Add memory barrier to prevent commoning reads from this field
   // across safepoint since GC can change its value.
-  insert_mem_bar(Op_MemBarCPUOrder);
+  insert_mem_bar(Op_MemBarCPUOrder, NULL, 9);
 
   set_result(result);
   return true;

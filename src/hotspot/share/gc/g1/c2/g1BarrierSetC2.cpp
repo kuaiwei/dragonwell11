@@ -578,7 +578,7 @@ void G1BarrierSetC2::insert_pre_barrier(GraphKit* kit, Node* base_oop, Node* off
         if (need_mem_bar) {
           // Add memory barrier to prevent commoning reads from this field
           // across safepoint since GC can change its value.
-          kit->insert_mem_bar(Op_MemBarCPUOrder);
+          kit->insert_mem_bar(Op_MemBarCPUOrder, NULL, 13);
         }
         // Update IdealKit from graphKit.
         __ sync_kit(kit);
@@ -630,7 +630,7 @@ Node* G1BarrierSetC2::load_at_resolved(C2Access& access, const Type* val_type) c
                 load /* pre_val */, T_OBJECT);
     // Add memory barrier to prevent commoning reads from this field
     // across safepoint since GC can change its value.
-    kit->insert_mem_bar(Op_MemBarCPUOrder);
+    kit->insert_mem_bar(Op_MemBarCPUOrder, NULL, 14);
   } else if (unknown) {
     // We do not require a mem bar inside pre_barrier if need_mem_bar
     // is set: the barriers would be emitted by us.

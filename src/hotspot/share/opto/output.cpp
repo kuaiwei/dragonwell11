@@ -1805,6 +1805,22 @@ void Compile::ScheduleAndBundle() {
   if (!_method)
     return;
 
+#ifndef PRODUCT
+  if (trace_opto_output()) {
+    tty->print("\n---- before ScheduleAndBundle ----\n");
+    for (uint i = 0; i < _cfg->number_of_blocks(); i++) {
+      tty->print("\nBB#%03d:\n", i);
+      Block* block = _cfg->get_block(i);
+      for (uint j = 0; j < block->number_of_nodes(); j++) {
+        Node* n = block->get_node(j);
+        OptoReg::Name reg = _regalloc->get_reg_first(n);
+        tty->print(" %-6s ", reg >= 0 && reg < REG_COUNT ? Matcher::regName[reg] : "");
+        n->dump();
+      }
+    }
+  }
+#endif
+
   // Don't optimize this if scheduling is disabled
   if (!do_scheduling())
     return;

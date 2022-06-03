@@ -880,7 +880,7 @@ Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr
   NOT_PRODUCT( verify_graph_edges(); )
 
 #ifndef PRODUCT
-  if (PrintIdeal) {
+  if (PrintIdeal || trace_opto_output()) {
     ttyLocker ttyl;  // keep the following output all in one block
     // This output goes directly to the tty, not the compiler log.
     // To enable tools to match it up with the compilation activity,
@@ -890,7 +890,10 @@ Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr
                  is_osr_compilation()    ? " compile_kind='osr'" :
                  "");
     }
+    tty->print("###ideal### compile_id='%d'%s\n", compile_id(),
+                 is_osr_compilation()    ? " compile_kind='osr'" : "");
     root()->dump(9999);
+    tty->print("###ideal dump end###\n");
     if (xtty != NULL) {
       xtty->tail("ideal");
     }

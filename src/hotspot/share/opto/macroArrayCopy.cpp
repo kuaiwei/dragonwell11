@@ -38,7 +38,7 @@
 #endif
 
 
-void PhaseMacroExpand::insert_mem_bar(Node** ctrl, Node** mem, int opcode, Node* precedent) {
+void PhaseMacroExpand::insert_mem_bar(Node** ctrl, Node** mem, int opcode, Node* precedent, int trace) {
   MemBarNode* mb = MemBarNode::make(C, opcode, Compile::AliasIdxBot, precedent);
   mb->init_req(TypeFunc::Control, *ctrl);
   mb->init_req(TypeFunc::Memory, *mem);
@@ -48,6 +48,9 @@ void PhaseMacroExpand::insert_mem_bar(Node** ctrl, Node** mem, int opcode, Node*
   Node* mem_proj = new ProjNode(mb,TypeFunc::Memory);
   transform_later(mem_proj);
   *mem = mem_proj;
+#ifdef ASSERT
+  mb->set_trace(trace);
+#endif
 }
 
 Node* PhaseMacroExpand::array_element_address(Node* ary, Node* idx, BasicType elembt) {
@@ -727,7 +730,7 @@ Node* PhaseMacroExpand::generate_arraycopy(ArrayCopyNode *ac, AllocateArrayNode*
     // other threads.
     insert_mem_bar(ctrl, &out_mem, Op_MemBarStoreStore);
   } else if (InsertMemBarAfterArraycopy) {
-    insert_mem_bar(ctrl, &out_mem, Op_MemBarCPUOrder);
+    insert_mem_bar(ctrl, &out_mem, Op_MemBarCPUOrder, NULL, 10);
   }
 
   _igvn.replace_node(_memproj_fallthrough, out_mem);
@@ -1189,7 +1192,7 @@ void PhaseMacroExpand::expand_arraycopy_node(ArrayCopyNode *ac) {
     // Do not let writes into the source float below the arraycopy.
     {
       Node* mem = ac->in(TypeFunc::Memory);
-      insert_mem_bar(&ctrl, &mem, Op_MemBarCPUOrder);
+      insert_mem_bar(&ctrl, &mem, Op_MemBarCPUOrder, NULL, 11);
 
       merge_mem = MergeMemNode::make(mem);
       transform_later(merge_mem);
@@ -1209,7 +1212,7 @@ void PhaseMacroExpand::expand_arraycopy_node(ArrayCopyNode *ac) {
     // memory slices which pertain to array elements--but don't bother.
     if (!InsertMemBarAfterArraycopy) {
       // (If InsertMemBarAfterArraycopy, there is already one in place.)
-      insert_mem_bar(&ctrl, &mem, Op_MemBarCPUOrder);
+      insert_mem_bar(&ctrl, &mem, Op_MemBarCPUOrder, NULL, 12);
     }
     return;
   }

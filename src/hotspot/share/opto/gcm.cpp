@@ -1459,7 +1459,7 @@ void PhaseCFG::global_code_motion() {
   ResourceMark rm;
 
 #ifndef PRODUCT
-  if (trace_opto_pipelining()) {
+  if (trace_opto_pipelining() || C->trace_opto_output()) {
     tty->print("\n---- Start GlobalCodeMotion ----\n");
   }
 #endif
@@ -1597,7 +1597,7 @@ void PhaseCFG::global_code_motion() {
   }
 
 #ifndef PRODUCT
-  if (trace_opto_pipelining()) {
+  if (trace_opto_pipelining() || C->trace_opto_output()) {
     tty->print("\n---- After GlobalCodeMotion ----\n");
     for (uint i = 0; i < number_of_blocks(); i++) {
       Block* block = get_block(i);

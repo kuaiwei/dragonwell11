@@ -813,7 +813,7 @@ class GraphKit : public Phase {
 
   // Helper functions to build synchronizations
   int next_monitor();
-  Node* insert_mem_bar(int opcode, Node* precedent = NULL);
+  Node* insert_mem_bar(int opcode, Node* precedent = NULL, int trace = 0);
   Node* insert_mem_bar_volatile(int opcode, int alias_idx, Node* precedent = NULL);
   // Optional 'precedent' is appended as an extra edge, to force ordering.
   FastLockNode* shared_lock(Node* obj);

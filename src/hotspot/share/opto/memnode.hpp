@@ -1183,6 +1183,7 @@ class MemBarNode: public MultiNode {
 
 #ifdef ASSERT
   uint _pair_idx;
+  int  _trace;
 #endif
 
 public:
@@ -1216,6 +1217,8 @@ public:
   bool leading() const { return _kind == LeadingStore || _kind == LeadingLoadStore; }
   bool standalone() const { return _kind == Standalone; }
 
+  void set_trace(int trace) { _trace = trace; }
+  int  get_trace() const { return _trace; }
   static void set_store_pair(MemBarNode* leading, MemBarNode* trailing);
   static void set_load_store_pair(MemBarNode* leading, MemBarNode* trailing);
 
@@ -1311,6 +1314,9 @@ public:
     : MemBarNode(C, alias_idx, precedent) {}
   virtual int Opcode() const;
   virtual uint ideal_reg() const { return 0; } // not matched in the AD file
+#ifndef PRODUCT
+  virtual void dump_spec(outputStream *st) const;
+#endif
 };
 
 class OnSpinWaitNode: public MemBarNode {

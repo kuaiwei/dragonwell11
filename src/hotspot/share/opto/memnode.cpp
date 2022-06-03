@@ -3147,6 +3147,7 @@ MemBarNode::MemBarNode(Compile* C, int alias_idx, Node* precedent)
     _adr_type(C->get_adr_type(alias_idx)), _kind(Standalone)
 #ifdef ASSERT
   , _pair_idx(0)
+  , _trace(0)
 #endif
 {
   init_class_id(Class_MemBar);
@@ -3196,6 +3197,15 @@ void MemBarNode::remove(PhaseIterGVN *igvn) {
   igvn->replace_node(proj_out(TypeFunc::Memory), in(TypeFunc::Memory));
   igvn->replace_node(proj_out(TypeFunc::Control), in(TypeFunc::Control));
 }
+
+#ifndef PRODUCT
+void MemBarCPUOrderNode::dump_spec(outputStream *st) const {
+  MemBarNode::dump_spec(st);
+  if (get_trace() != 0) {
+    st->print(" (cpuorder trace = %d)", get_trace());
+  }
+}
+#endif
 
 //------------------------------Ideal------------------------------------------
 // Return a node which is more "ideal" than the current node.  Strip out

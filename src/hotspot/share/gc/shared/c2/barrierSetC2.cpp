@@ -176,7 +176,7 @@ public:
     }
 
     if (access.needs_cpu_membar()) {
-      kit->insert_mem_bar(Op_MemBarCPUOrder);
+      kit->insert_mem_bar(Op_MemBarCPUOrder, NULL, 15);
     }
 
     if (is_atomic) {
@@ -201,7 +201,7 @@ public:
     // If reference is volatile, prevent following volatiles ops from
     // floating up before the volatile access.
     if (_access.needs_cpu_membar()) {
-      kit->insert_mem_bar(Op_MemBarCPUOrder);
+      kit->insert_mem_bar(Op_MemBarCPUOrder, NULL, 16);
     }
 
     if (is_atomic) {

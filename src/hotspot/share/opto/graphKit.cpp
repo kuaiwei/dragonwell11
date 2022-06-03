@@ -3215,13 +3215,16 @@ int GraphKit::next_monitor() {
 //------------------------------insert_mem_bar---------------------------------
 // Memory barrier to avoid floating things around
 // The membar serves as a pinch point between both control and all memory slices.
-Node* GraphKit::insert_mem_bar(int opcode, Node* precedent) {
+Node* GraphKit::insert_mem_bar(int opcode, Node* precedent, int trace) {
   MemBarNode* mb = MemBarNode::make(C, opcode, Compile::AliasIdxBot, precedent);
   mb->init_req(TypeFunc::Control, control());
   mb->init_req(TypeFunc::Memory,  reset_memory());
   Node* membar = _gvn.transform(mb);
   set_control(_gvn.transform(new ProjNode(membar, TypeFunc::Control)));
   set_all_memory_call(membar);
+#ifdef ASSERT
+  mb->set_trace(trace);
+#endif
   return membar;
 }
 
