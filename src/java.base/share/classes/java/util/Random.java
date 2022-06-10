@@ -36,6 +36,7 @@ import java.util.stream.StreamSupport;
 
 import jdk.internal.misc.Unsafe;
 
+import jdk.internal.HotSpotIntrinsicCandidate;
 /**
  * An instance of this class is used to generate a stream of
  * pseudorandom numbers. The class uses a 48-bit seed, which is
@@ -195,6 +196,7 @@ class Random implements java.io.Serializable {
      *         generator's sequence
      * @since  1.1
      */
+    @HotSpotIntrinsicCandidate
     protected int next(int bits) {
         long oldseed, nextseed;
         AtomicLong seed = this.seed;

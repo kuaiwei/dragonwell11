@@ -118,6 +118,7 @@
   template(java_util_Vector,                          "java/util/Vector")                         \
   template(java_util_AbstractList,                    "java/util/AbstractList")                   \
   template(java_util_Hashtable,                       "java/util/Hashtable")                      \
+  template(java_util_Random,                          "java/util/Random")                         \
   template(java_lang_Compiler,                        "java/lang/Compiler")                       \
   template(jdk_internal_misc_Signal,                  "jdk/internal/misc/Signal")                 \
   template(jdk_internal_util_Preconditions,           "jdk/internal/util/Preconditions")          \
@@ -449,6 +450,7 @@
   template(init_lock_name,                            "<init_lock>")                              \
   template(initializeWispClass_name,                  "initializeWispClass")                      \
   template(startWispDaemons_name,                     "startWispDaemons")                         \
+  template(next_name,                                 "next")                                     \
                                                                                                   \
   /* name symbols needed by intrinsics */                                                         \
   VM_INTRINSICS_DO(VM_INTRINSIC_IGNORE, VM_SYMBOL_IGNORE, template, VM_SYMBOL_IGNORE, VM_ALIAS_IGNORE) \
@@ -981,6 +983,8 @@
    do_signature(equalsC_signature,                               "([C[C)Z")                                             \
   do_intrinsic(_equalsB,                  java_util_Arrays,       equals_name,    equalsB_signature,             F_S)   \
    do_signature(equalsB_signature,                               "([B[B)Z")                                             \
+                                                                                                                        \
+  do_intrinsic(_randomNext,               java_util_Random,       next_name,      int_int_signature,             F_R)   \
                                                                                                                         \
   do_intrinsic(_compressStringC,          java_lang_StringUTF16,  compress_name, encodeISOArray_signature,       F_S)   \
    do_name(     compress_name,                                   "compress")                                            \
