@@ -464,7 +464,8 @@ private:
 
   // Optimize ideal graph.
   void optimize_ideal_graph(GrowableArray<Node*>& ptr_cmp_worklist,
-                            GrowableArray<Node*>& storestore_worklist);
+                            GrowableArray<Node*>& storestore_worklist,
+                            GrowableArray<Node*>& cas_worklist);
   // Optimize objects compare.
   Node* optimize_ptr_compare(Node* n);
 

@@ -128,6 +128,7 @@ bool ConnectionGraph::compute_escape() {
   GrowableArray<JavaObjectNode*> java_objects_worklist;
   GrowableArray<JavaObjectNode*> non_escaped_worklist;
   GrowableArray<FieldNode*>      oop_fields_worklist;
+  GrowableArray<Node*> cas_worklist;
   DEBUG_ONLY( GrowableArray<Node*> addp_worklist; )
 
   { Compile::TracePhase tp("connectionGraph", &Phase::timers[Phase::_t_connectionGraph]);
@@ -188,6 +189,8 @@ bool ConnectionGraph::compute_escape() {
       // Keep a list of ArrayCopy nodes so if one of its input is non
       // escaping, we can record a unique type
       arraycopy_worklist.append(n->as_ArrayCopy());
+    } else if (n->is_cas()) {
+      cas_worklist.append(n);
     }
     for (DUIterator_Fast imax, i = n->fast_outs(imax); i < imax; i++) {
       Node* m = n->fast_out(i);   // Get user
@@ -278,7 +281,7 @@ bool ConnectionGraph::compute_escape() {
   // 4. Optimize ideal graph based on EA information.
   bool has_non_escaping_obj = (non_escaped_worklist.length() > 0);
   if (has_non_escaping_obj) {
-    optimize_ideal_graph(ptr_cmp_worklist, storestore_worklist);
+    optimize_ideal_graph(ptr_cmp_worklist, storestore_worklist, cas_worklist);
   }
 
 #ifndef PRODUCT
@@ -1904,9 +1907,22 @@ void ConnectionGraph::verify_connection_graph(
 
 // Optimize ideal graph.
 void ConnectionGraph::optimize_ideal_graph(GrowableArray<Node*>& ptr_cmp_worklist,
-                                           GrowableArray<Node*>& storestore_worklist) {
+                                           GrowableArray<Node*>& storestore_worklist,
+                                           GrowableArray<Node*>& cas_worklist) {
   Compile* C = _compile;
   PhaseIterGVN* igvn = _igvn;
+
+  while (cas_worklist.length() != 0) {
+    Node *n = cas_worklist.pop();
+    Node *adr = n->in(2);
+    if (adr->is_AddP()) {
+      Node* jobj = get_addp_base(n);
+      if (not_global_escape(jobj)) {
+        log_info(jit)("find cas operation on non escape obj");
+      }
+    }
+  }
+
   if (EliminateLocks) {
     // Mark locks before changing ideal graph.
     int cnt = C->macro_count();

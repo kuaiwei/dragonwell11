@@ -890,6 +890,8 @@ public:
   MemNode::MemOrd order() const {
     return _mem_ord;
   }
+
+  virtual bool is_cas() const {return true;}
 #if INCLUDE_ZGC
   virtual uint size_of() const { return sizeof(*this); }
 #endif
@@ -910,6 +912,8 @@ public:
   MemNode::MemOrd order() const {
     return _mem_ord;
   }
+
+  virtual bool is_cas() const {return true;}
 #if INCLUDE_ZGC
   virtual uint size_of() const { return sizeof(*this); }
 #endif

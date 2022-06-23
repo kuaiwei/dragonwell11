@@ -774,6 +774,8 @@ public:
 
   const jushort flags() const { return _flags; }
 
+  virtual bool is_cas() const {return false;}
+
   void add_flag(jushort fl) { init_flags(fl); }
 
   void remove_flag(jushort fl) { clear_flag(fl); }
