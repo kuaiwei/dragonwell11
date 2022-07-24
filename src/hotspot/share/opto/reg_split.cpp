@@ -571,6 +571,13 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
   for( slidx = 0; slidx < spill_cnt; slidx++ )
     UP_entry[slidx] = new VectorSet(split_arena);
 
+  if (trace_spilling()) {
+    tty->print_cr("======= Before Split ======");
+    for( bidx = 0; bidx < _cfg.number_of_blocks(); bidx++ ) {
+      b = _cfg.get_block(bidx);
+      b->dump();
+    }
+  }
   //----------PASS 1----------
   //----------Propagation & Node Insertion Code----------
   // Walk the Blocks in RPO for DEF & USE info
@@ -1107,6 +1114,11 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
                   Node *spill = new MachSpillCopyNode(MachSpillCopyNode::MemToReg, def, dmask, *tmp_rm);
                   insert_proj( b, insidx, spill, maxlrg );
                   maxlrg++; insidx++;
+                  if (trace_spilling()) {
+                    tty->print_cr("mem2reg for mem2mem copy");
+                    def->dump();
+                    spill->dump();
+                  }
                   // Then Split-DOWN as if previous Split was DEF
                   int delta = split_USE(MachSpillCopyNode::RegToMem, spill,b,n,inpidx,maxlrg,false,false, splits,slidx);
                   // If it wasn't split bail
@@ -1155,6 +1167,12 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
                   if (delta < 0) {
                     return 0;
                   }
+                  if (trace_spilling()) {
+                    tty->print_cr("mem2reg for high pressure, delta:%d", delta);
+                    def->dump();
+                    n->dump();
+                  }
+
                   maxlrg += delta;
                   insidx += delta;  // Reset iterator to skip USE side split
                 } else {                          // LRP
@@ -1163,6 +1181,11 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
                   // If it wasn't split bail
                   if (delta < 0) {
                     return 0;
+                  }
+                  if (trace_spilling()) {
+                    tty->print_cr("mem2reg for low pressure, delta:%d", delta);
+                    def->dump();
+                    n->dump();
                   }
                   // Flag this lift-up in a low-pressure block as
                   // already-spilled, so if it spills again it will
@@ -1267,6 +1290,12 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
               n->as_MachSpillCopy()->set_in_RegMask(def_rm);
               // Put the spill just before the copy
               insert_proj( b, insidx++, spill, maxlrg++ );
+              if (trace_spilling()) {
+                tty->print_cr("mem2reg for copy");
+                use->dump();
+                spill->dump();
+                n->dump();
+              }
             }
           }
         }
@@ -1303,6 +1332,13 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
 #endif
   }  // End For All Blocks
 
+  if (trace_spilling()) {
+    tty->print_cr("=== end pass1 ===");
+    for( bidx = 0; bidx < _cfg.number_of_blocks(); bidx++ ) {
+      b = _cfg.get_block(bidx);
+      b->dump();
+    }
+  }
   //----------PASS 2----------
   // Reset all DEF live range numbers here
   for( insidx = 0; insidx < defs->size(); insidx++ ) {
@@ -1376,6 +1412,13 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
         if (delta < 0) {
           return 0;
         }
+        if (trace_spilling()) {
+          tty->print_cr("split use for differ location phi u1:%d phi_up:%d, pidx:%d slidx:%d",
+                         u1, phi_up, pidx, slidx);
+          phi->dump();
+          def->dump();
+          tty->print_cr("");
+        }
         maxlrg += delta;
       }
     }  // End for all inputs to the Phi
@@ -1384,6 +1427,13 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
   _lrg_map.set_max_lrg_id(maxlrg);
 
 
+  if (trace_spilling()) {
+    tty->print_cr("=== end pass2 ===");
+    for( bidx = 0; bidx < _cfg.number_of_blocks(); bidx++ ) {
+      b = _cfg.get_block(bidx);
+      b->dump();
+    }
+  }
   //----------PASS 3----------
   // Pass over all Phi's to union the live ranges
   for( insidx = 0; insidx < phis->size(); insidx++ ) {
@@ -1450,6 +1500,9 @@ uint PhaseChaitin::Split(uint maxlrg, ResourceArea* split_arena) {
     //BREAKPOINT;
   }
 #endif
+  if (trace_spilling()) {
+    tty->print_cr("=== end pass3 ===");
+  }
   // Return updated count of live ranges
   return maxlrg;
 }

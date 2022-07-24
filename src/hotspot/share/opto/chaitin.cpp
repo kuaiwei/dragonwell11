@@ -582,6 +582,14 @@ void PhaseChaitin::Register_Allocate() {
     spills = Select();
   }
 
+  if (trace_spilling()) {
+    tty->print_cr("==== after select ====");
+    for( uint bidx = 0; bidx < _cfg.number_of_blocks(); bidx++ ) {
+      Block* b = _cfg.get_block(bidx);
+      b->dump();
+    }
+  }
+
   // Count number of Simplify-Select trips per coloring success.
   _allocator_attempts += _trip_cnt + 1;
   _allocator_successes += 1;
@@ -589,9 +597,23 @@ void PhaseChaitin::Register_Allocate() {
   // Peephole remove copies
   post_allocate_copy_removal();
 
+  if (trace_spilling()) {
+    tty->print_cr("==== after post alloc remove ====");
+    for( uint bidx = 0; bidx < _cfg.number_of_blocks(); bidx++ ) {
+      Block* b = _cfg.get_block(bidx);
+      b->dump();
+    }
+  }
   // Merge multidefs if multiple defs representing the same value are used in a single block.
   merge_multidefs();
 
+  if (trace_spilling()) {
+    tty->print_cr("==== after merge multidefs ====");
+    for( uint bidx = 0; bidx < _cfg.number_of_blocks(); bidx++ ) {
+      Block* b = _cfg.get_block(bidx);
+      b->dump();
+    }
+  }
 #ifdef ASSERT
   // Veify the graph after RA.
   verify(&live_arena);
@@ -665,6 +687,14 @@ void PhaseChaitin::Register_Allocate() {
       if( lrg._is_oop ) _node_oops.set(i);
     } else {
       set_bad(i);
+    }
+  }
+
+  if (trace_spilling()) {
+    tty->print_cr("==== after ra ====");
+    for( uint bidx = 0; bidx < _cfg.number_of_blocks(); bidx++ ) {
+      Block* b = _cfg.get_block(bidx);
+      b->dump();
     }
   }
 

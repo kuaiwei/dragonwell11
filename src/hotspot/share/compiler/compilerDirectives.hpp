@@ -58,6 +58,7 @@
   #define compilerdirectives_c2_flags(cflags) \
     cflags(BlockLayoutByFrequency,  bool, BlockLayoutByFrequency,  BlockLayoutByFrequency) \
     cflags(PrintOptoAssembly,       bool, PrintOptoAssembly, PrintOptoAssembly) \
+    cflags(PrintIdeal,              bool, PrintIdeal, PrintIdeal) \
     cflags(PrintIntrinsics,         bool, PrintIntrinsics, PrintIntrinsics) \
 NOT_PRODUCT(cflags(TraceOptoPipelining, bool, TraceOptoPipelining, TraceOptoPipelining)) \
 NOT_PRODUCT(cflags(TraceOptoOutput,     bool, TraceOptoOutput, TraceOptoOutput)) \
