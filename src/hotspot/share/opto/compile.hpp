@@ -734,6 +734,7 @@ class Compile : public Phase {
   bool              parsed_irreducible_loop() const { return _parsed_irreducible_loop; }
   void          set_parsed_irreducible_loop(bool z) { _parsed_irreducible_loop = z; }
   int _in_dump_cnt;  // Required for dumping ir nodes.
+  void          dump_ir(char *message);
 #endif
   bool              has_irreducible_loop() const { return _has_irreducible_loop; }
   void          set_has_irreducible_loop(bool z) { _has_irreducible_loop = z; }

@@ -4879,6 +4879,26 @@ void Compile::remove_speculative_types(PhaseIterGVN &igvn) {
   }
 }
 
+#ifndef PRODUCT
+void Compile::dump_ir(char* message) {
+  if (directive()->PrintIdealOption) {
+    ttyLocker ttyl;  // keep the following output all in one block
+    // This output goes directly to the tty, not the compiler log.
+    // To enable tools to match it up with the compilation activity,
+    // be sure to tag this tty output with the compile ID.
+    if (xtty != NULL) {
+      xtty->head("Dump ideal compile_id='%d'%s, phase=%s", compile_id(),
+                 is_osr_compilation() ? " compile_kind='osr'" : "",
+                 message);
+    }
+    root()->dump(9999);
+    if (xtty != NULL) {
+      xtty->tail("Dump ideal end");
+    }
+  }
+}
+#endif
+
 // Auxiliary method to support randomized stressing/fuzzing.
 //
 // This method can be called the arbitrary number of times, with current count
