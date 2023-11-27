@@ -10793,7 +10793,7 @@ instruct urShiftP_reg_imm(iRegLNoSp dst, iRegP src1, immI src2) %{
   match(Set dst (URShiftL (CastP2X src1) src2));
 
   ins_cost(INSN_COST);
-  format %{ "lsr $dst, p2x($src1), ($src2 & 0x3f)" %}
+  format %{ "lsr $dst, p2x($src1), ($src2 & 0x3f) (card-mark)" %}
 
   ins_encode %{
     __ lsr(as_Register($dst$$reg),
@@ -10802,6 +10802,22 @@ instruct urShiftP_reg_imm(iRegLNoSp dst, iRegP src1, immI src2) %{
   %}
 
   ins_pipe(ialu_reg_shift);
+%}
+
+// A special-case pattern for g1 post barrier
+instruct xorl_cast_src1_cast_src2(iRegLNoSp dst, iRegP src1, iRegP src2) %{
+  match(Set dst (XorL (CastP2X src1) (CastP2X src2)));
+  predicate(UseG1GC && ReduceG1BarrierSize);
+
+  format %{ "eor  $dst, p2x($src1), p2x($src2)\t" %}
+  ins_cost(INSN_COST);
+  ins_encode %{
+    __ eor(as_Register($dst$$reg),
+           as_Register($src1$$reg),
+           as_Register($src2$$reg));
+  %}
+
+  ins_pipe(ialu_reg_reg);
 %}
 
 // Shift Right Arithmetic Register

@@ -1518,6 +1518,15 @@ static bool match_into_reg( const Node *n, Node *m, Node *control, int i, bool s
       // efficiently fold into them on X64 in some cases.
       return false;
     }
+    // a chance for g1gc
+    if (m->Opcode() == Op_CastP2X && UseG1GC && ReduceG1BarrierSize) {
+      for (DUIterator_Fast imax, i = m->fast_outs(imax); i < imax; i++) {
+        Node* p = m->fast_out(i);
+        if (p != NULL && (p->Opcode() == Op_XorL || p->Opcode() == Op_URShiftL)) {
+          return false;
+        }
+      }
+    }
   }
 
   // Not forceable cloning.  If shared, put it into a register.
