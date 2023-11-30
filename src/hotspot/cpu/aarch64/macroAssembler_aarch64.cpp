@@ -1119,12 +1119,17 @@ void MacroAssembler::lookup_interface_method_stub(Register recv_klass,
                                                   Register method_result,
                                                   Register temp_itbl_klass,
                                                   Register scan_temp,
-                                                  int itable_index,
+                                                  RegisterOrConstant itable_index,
                                                   Label& L_no_such_interface) {
   // 'method_result' is only used as output register at the very end of this method.
   // Until then we can reuse it as 'holder_offset'.
   Register holder_offset = method_result;
+  bool shared = itable_index.is_register();   // origin stub pass itable index as int constant
   assert_different_registers(resolved_klass, recv_klass, holder_klass, temp_itbl_klass, scan_temp, holder_offset);
+  if (shared) {
+    assert(SharedItableStub, "must enable SharedItableStub");
+    assert_different_registers(resolved_klass, recv_klass, holder_klass, temp_itbl_klass, scan_temp, itable_index.as_register(), holder_offset);
+  }
 
   int vtable_start_offset = in_bytes(Klass::vtable_start_offset());
   int itable_offset_entry_size = itableOffsetEntry::size() * wordSize;
@@ -1163,6 +1168,15 @@ void MacroAssembler::lookup_interface_method_stub(Register recv_klass,
   //   } while (temp_itbl_klass != 0);
   //   goto L_no_such_interface // Not found.
   Label L_search_holder;
+  if (shared) {
+    // make the loop cacheline alignment for shared stub, regular stub will report wrong estimated size
+    unsigned long loop_start_addr = p2i(pc());
+    // the loop body has 14 instruction, the start address <=8 , we can put the whole loop inside one cache line
+    while( (loop_start_addr % 64) > 8 ) {
+      nop();
+      loop_start_addr += NativeInstruction::instruction_size;
+    }
+  }
   bind(L_search_holder);
     ldr(temp_itbl_klass, Address(pre(scan_temp, itable_offset_entry_size)));
     cmp(holder_klass, temp_itbl_klass);
@@ -1205,8 +1219,12 @@ void MacroAssembler::lookup_interface_method_stub(Register recv_klass,
   // Finally, scan_temp contains holder_klass vtable offset
   bind(L_holder_found);
   ldrw(method_result, Address(scan_temp, ooffset - ioffset));
-  add(recv_klass, recv_klass, itable_index * wordSize + itableMethodEntry::method_offset_in_bytes()
-    - vtable_start_offset - ioffset); // substract offsets to restore the original value of recv_klass
+  if (shared) {
+    sub(recv_klass, recv_klass, itable_index.as_register());
+  } else {
+    add(recv_klass, recv_klass, itable_index.as_constant() * wordSize + itableMethodEntry::method_offset_in_bytes()
+      - vtable_start_offset - ioffset); // substract offsets to restore the original value of recv_klass
+  }
   ldr(method_result, Address(recv_klass, method_result, Address::uxtw(0)));
 }
 
