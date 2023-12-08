@@ -89,9 +89,6 @@
                                                                             \
   product(bool, ReduceG1BarrierSize, false,                           \
           "balahbalah") \
-                                                                            \
-  product(bool, SharedItableStub, AARCH64_ONLY(true) NOT_AARCH64(false),                           \
-          "balahbalah") \
   //add new AJDK specific flags here
 
 

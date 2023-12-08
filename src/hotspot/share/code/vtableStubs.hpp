@@ -85,7 +85,6 @@ class VtableStubs : AllStatic {
   static int         _number_of_vtable_stubs;    // number of stubs created so far (for statistics)
   static int         _vtab_stub_size;            // current size estimate for vtable stub (quasi-constant)
   static int         _itab_stub_size;            // current size estimate for itable stub (quasi-constant)
-  static VtableStub* _shared_itable_stub;        // a shared itable stub for index from 0 to 9
 
   static VtableStub* create_vtable_stub(int vtable_index);
   static VtableStub* create_itable_stub(int vtable_index);
@@ -111,11 +110,6 @@ class VtableStubs : AllStatic {
   static int         number_of_vtable_stubs() { return _number_of_vtable_stubs; }
   static void        initialize();
   static void        vtable_stub_do(void f(VtableStub*));            // iterates over all vtable stubs
-  // for shared itable stub
-  static inline const int   shared_itable_entries()  { return 10; }
-  static inline VtableStub* shared_itable_stub()  { return SharedItableStub ? _shared_itable_stub : NULL; }
-  static address            entry_for_shared_itable_stub(int index);
-  static VtableStub*        create_shared_itable_stub();
 };
 
 

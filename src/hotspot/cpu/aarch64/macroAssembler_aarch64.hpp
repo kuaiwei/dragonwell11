@@ -907,7 +907,7 @@ public:
                                     Register method_result,
                                     Register temp_reg,
                                     Register temp_reg2,
-                                    RegisterOrConstant itable_index,
+                                    int itable_index,
                                     Label& L_no_such_interface);
 
   // virtual method calling

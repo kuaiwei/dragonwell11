@@ -95,7 +95,6 @@ VtableStub* VtableStubs::_table[VtableStubs::N];
 int VtableStubs::_number_of_vtable_stubs = 0;
 int VtableStubs::_vtab_stub_size = 0;
 int VtableStubs::_itab_stub_size = 0;
-VtableStub* VtableStubs::_shared_itable_stub = NULL;
 
 #if defined(PRODUCT)
   // These values are good for the PRODUCT case (no tracing).
@@ -130,9 +129,6 @@ void VtableStubs::initialize() {
     assert(is_power_of_2(N), "N must be a power of 2");
     for (int i = 0; i < N; i++) {
       _table[i] = NULL;
-    }
-    if (SharedItableStub) {
-      _shared_itable_stub = create_shared_itable_stub();
     }
   }
 }
@@ -212,12 +208,6 @@ void VtableStubs::bookkeeping(MacroAssembler* masm, outputStream* out, VtableStu
 address VtableStubs::find_stub(bool is_vtable_stub, int vtable_index) {
   assert(vtable_index >= 0, "must be positive");
 
-  if ((!is_vtable_stub) && SharedItableStub && vtable_index < VtableStubs::shared_itable_entries()) {
-    address stub_addr = entry_for_shared_itable_stub(vtable_index);
-    log_trace(vtablestubs)("find shared itable stub address " PTR_FORMAT " index %d", p2i(stub_addr), vtable_index);
-    return stub_addr;
-  }
-
   VtableStub* s = lookup(is_vtable_stub, vtable_index);
   if (s == NULL) {
     if (is_vtable_stub) {
@@ -276,9 +266,6 @@ void VtableStubs::enter(bool is_vtable_stub, int vtable_index, VtableStub* s) {
 }
 
 VtableStub* VtableStubs::entry_point(address pc) {
-  if (SharedItableStub && _shared_itable_stub->contains(pc)) {
-    return _shared_itable_stub;
-  }
   MutexLocker ml(VtableStubs_lock);
   VtableStub* stub = (VtableStub*)(pc - VtableStub::entry_offset());
   uint hash = VtableStubs::hash(stub->is_vtable_stub(), stub->index());
@@ -298,9 +285,6 @@ VtableStub* VtableStubs::stub_containing(address pc) {
   // Note: No locking needed since any change to the data structure
   //       happens with an atomic store into it (we don't care about
   //       consistency with the _number_of_vtable_stubs counter).
-  if (SharedItableStub && _shared_itable_stub->contains(pc)) {
-    return _shared_itable_stub;
-  }
   for (int i = 0; i < N; i++) {
     for (VtableStub* s = _table[i]; s != NULL; s = s->next()) {
       if (s->contains(pc)) return s;
@@ -314,9 +298,6 @@ void vtableStubs_init() {
 }
 
 void VtableStubs::vtable_stub_do(void f(VtableStub*)) {
-    if (SharedItableStub) {
-        f(_shared_itable_stub);
-    }
     for (int i = 0; i < N; i++) {
         for (VtableStub* s = _table[i]; s != NULL; s = s->next()) {
             f(s);
