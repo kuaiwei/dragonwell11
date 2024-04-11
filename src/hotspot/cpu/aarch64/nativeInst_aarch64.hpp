@@ -139,6 +139,13 @@ class NativeInstruction {
       Instruction_aarch64::extract(insn, 23, 23) == 0b0 &&
       Instruction_aarch64::extract(insn, 26, 25) == 0b00;
   }
+
+  bool is_Imm_LdSt_Float() {
+    unsigned int insn = uint_at(0);
+    return Instruction_aarch64::extract(insn, 29, 27) == 0b111 &&
+           Instruction_aarch64::extract(insn, 23, 23) == 0b0 &&
+           Instruction_aarch64::extract(insn, 26, 25) == 0b10;
+  }
 };
 
 inline NativeInstruction* nativeInstruction_at(address address) {
@@ -700,5 +707,60 @@ public:
 inline NativeLdSt *NativeLdSt_at(address addr) {
   assert(nativeInstruction_at(addr)->is_Imm_LdSt(), "no immediate load/store found");
   return (NativeLdSt*)addr;
+}
+
+class NativeLdStFloat : public NativeInstruction {
+private:
+    int32_t size() { return Instruction_aarch64::extract(uint_at(0), 31, 30); }
+    // Check whether instruction is with unscaled offset.
+    bool is_ldst_ur_float() {
+        return (Instruction_aarch64::extract(uint_at(0), 29, 21) == 0b111100010 ||
+                Instruction_aarch64::extract(uint_at(0), 29, 21) == 0b111100000) &&
+               Instruction_aarch64::extract(uint_at(0), 11, 10) == 0b00;
+    }
+    bool is_ldst_unsigned_offset_float() {
+        return Instruction_aarch64::extract(uint_at(0), 29, 22) == 0b11110101 ||
+               Instruction_aarch64::extract(uint_at(0), 29, 22) == 0b11110100;
+    }
+public:
+    FloatRegister target() {
+        uint32_t r = Instruction_aarch64::extract(uint_at(0), 4, 0);
+        return as_FloatRegister(r);
+    }
+    Register base() {
+        uint32_t b = Instruction_aarch64::extract(uint_at(0), 9, 5);
+        return b == 0x1f ? sp : as_Register(b);
+    }
+    int64_t offset() {
+        if (is_ldst_ur_float()) {
+            return Instruction_aarch64::sextract(uint_at(0), 20, 12);
+        } else if (is_ldst_unsigned_offset_float()) {
+            return Instruction_aarch64::extract(uint_at(0), 21, 10) << size();
+        } else {
+            // others like: pre-index or post-index.
+            ShouldNotReachHere();
+            return 0;
+        }
+    }
+    size_t size_in_bytes() { return 1ULL << size(); }
+    bool is_not_pre_post_index() { return (is_ldst_ur_float() || is_ldst_unsigned_offset_float()); }
+    bool is_load() {
+        assert(Instruction_aarch64::extract(uint_at(0), 23, 22) == 0b01 ||
+               Instruction_aarch64::extract(uint_at(0), 23, 22) == 0b00, "must be ldr or str");
+
+        return Instruction_aarch64::extract(uint_at(0), 23, 22) == 0b01;
+    }
+    bool is_store() {
+        assert(Instruction_aarch64::extract(uint_at(0), 23, 22) == 0b01 ||
+               Instruction_aarch64::extract(uint_at(0), 23, 22) == 0b00, "must be ldr or str");
+
+        return Instruction_aarch64::extract(uint_at(0), 23, 22) == 0b00;
+    }
+};
+
+
+inline NativeLdStFloat *NativeLdStFloat_at(address addr) {
+    assert(nativeInstruction_at(addr)->is_Imm_LdSt_Float(), "no immediate load/store float found");
+    return (NativeLdStFloat*)addr;
 }
 #endif // CPU_AARCH64_VM_NATIVEINST_AARCH64_HPP

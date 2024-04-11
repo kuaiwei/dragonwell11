@@ -178,6 +178,11 @@ class MacroAssembler: public Assembler {
   void str(Register Rx, const Address &adr);
   void strw(Register Rx, const Address &adr);
 
+  void ldrs(FloatRegister Rx, const Address &adr);
+  void ldrd(FloatRegister Rw, const Address &adr);
+  void strs(FloatRegister Rx, const Address &adr);
+  void strd(FloatRegister Rx, const Address &adr);
+
   // Frame creation and destruction shared between JITs.
   void build_frame(int framesize);
   void remove_frame(int framesize);
@@ -1376,6 +1381,15 @@ private:
   // Try to merge two loads/stores into ldp/stp. If success, returns true else false.
   bool try_merge_ldst(Register rt, const Address &adr, size_t cur_size_in_bytes, bool is_store);
 
+  // Check whether two loads/stores can be merged into ldp/stp.
+  bool ldst_can_merge_float(FloatRegister vx, const Address &adr, size_t cur_size_in_bytes, bool is_store) const;
+
+  // Merge current load/store with previous load/store into ldp/stp.
+  void merge_ldst_float(FloatRegister vx, const Address &adr, size_t cur_size_in_bytes, bool is_store);
+
+  // Try to merge two loads/stores into ldp/stp. If success, returns true else false.
+  bool try_merge_ldst_float(FloatRegister vx, const Address &adr, size_t cur_size_in_bytes, bool is_store);
+
 public:
   void spill(Register Rx, bool is64, int offset) {
     if (is64) {
@@ -1385,7 +1399,13 @@ public:
     }
   }
   void spill(FloatRegister Vx, SIMD_RegVariant T, int offset) {
-    str(Vx, T, spill_address(1 << (int)T, offset));
+    if (T == D) {
+      strd(Vx, spill_address(8, offset));
+    } else if (T == S) {
+      strs(Vx, spill_address(4, offset));
+    } else {
+      str(Vx, T, spill_address(1 << (int) T, offset));
+    }
   }
   void unspill(Register Rx, bool is64, int offset) {
     if (is64) {
@@ -1395,7 +1415,13 @@ public:
     }
   }
   void unspill(FloatRegister Vx, SIMD_RegVariant T, int offset) {
-    ldr(Vx, T, spill_address(1 << (int)T, offset));
+    if (T == D) {
+      ldrd(Vx, spill_address(8, offset));
+    } else if (T == S) {
+      ldrs(Vx, spill_address(4, offset));
+    } else {
+      ldr(Vx, T, spill_address(1 << (int) T, offset));
+    }
   }
   void spill_copy128(int src_offset, int dst_offset,
                      Register tmp1=rscratch1, Register tmp2=rscratch2) {

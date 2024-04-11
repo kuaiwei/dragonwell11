@@ -2022,6 +2022,35 @@ void MacroAssembler::strw(Register Rw, const Address &adr) {
   }
 }
 
+void MacroAssembler::ldrd(FloatRegister Rd, const Address &adr) {
+    // We always try to merge two adjacent loads into one ldp.
+    if (!try_merge_ldst_float(Rd, adr, 8, false)) {
+        Assembler::ldrd(Rd, adr);
+    }
+}
+
+void MacroAssembler::ldrs(FloatRegister Rs, const Address &adr) {
+    // We always try to merge two adjacent loads into one ldp.
+    if (!try_merge_ldst_float(Rs, adr, 4, false)) {
+        Assembler::ldrs(Rs, adr);
+    }
+}
+
+void MacroAssembler::strd(FloatRegister Rd, const Address &adr) {
+    // We always try to merge two adjacent stores into one stp.
+    if (!try_merge_ldst_float(Rd, adr, 8, true)) {
+        Assembler::strd(Rd, adr);
+    }
+}
+
+void MacroAssembler::strs(FloatRegister Rs, const Address &adr) {
+    // We always try to merge two adjacent stores into one stp.
+    if (!try_merge_ldst_float(Rs, adr, 4, true)) {
+        Assembler::strs(Rs, adr);
+    }
+}
+
+
 // MacroAssembler routines found actually to be needed
 
 void MacroAssembler::push(Register src)
@@ -3031,6 +3060,133 @@ void MacroAssembler::merge_ldst(Register rt,
       stp(rt_low, rt_high, adr_p);
     } else {
       stpw(rt_low, rt_high, adr_p);
+    }
+  }
+}
+
+bool MacroAssembler::ldst_can_merge_float(FloatRegister rt,
+                                          const Address &adr,
+                                          size_t cur_size_in_bytes,
+                                          bool is_store) const {
+  address prev = pc() - NativeInstruction::instruction_size;
+  address last = code()->last_insn();
+
+  if (last == NULL || !nativeInstruction_at(last)->is_Imm_LdSt_Float()) {
+    return false;
+  }
+
+  if (adr.getMode() != Address::base_plus_offset || prev != last) {
+    return false;
+  }
+
+  NativeLdStFloat* prev_ldst = NativeLdStFloat_at(prev);
+  size_t prev_size_in_bytes = prev_ldst->size_in_bytes();
+
+  assert(prev_size_in_bytes == 4 || prev_size_in_bytes == 8, "only supports 64/32bit merging.");
+  assert(cur_size_in_bytes == 4 || cur_size_in_bytes == 8, "only supports 64/32bit merging.");
+
+  if (cur_size_in_bytes != prev_size_in_bytes || is_store != prev_ldst->is_store()) {
+    return false;
+  }
+
+  int64_t max_offset = 63 * prev_size_in_bytes;
+  int64_t min_offset = -64 * prev_size_in_bytes;
+
+  assert(prev_ldst->is_not_pre_post_index(), "pre-index or post-index is not supported to be merged.");
+
+  // Only same base can be merged.
+  if (adr.base() != prev_ldst->base()) {
+    return false;
+  }
+
+  int64_t cur_offset = adr.offset();
+  int64_t prev_offset = prev_ldst->offset();
+  size_t diff = abs(cur_offset - prev_offset);
+  if (diff != prev_size_in_bytes) {
+    return false;
+  }
+
+  // Following cases can not be merged:
+  // ldr x2, [x2, #8]
+  // ldr x3, [x2, #16]
+  // or:
+  // ldr x2, [x3, #8]
+  // ldr x2, [x3, #16]
+  // If t1 and t2 is the same in "ldp t1, t2, [xn, #imm]", we'll get SIGILL.
+  if (!is_store && rt == prev_ldst->target()) {
+    return false;
+  }
+
+  int64_t low_offset = prev_offset > cur_offset ? cur_offset : prev_offset;
+  // Offset range must be in ldp/stp instruction's range.
+  if (low_offset > max_offset || low_offset < min_offset) {
+    return false;
+  }
+
+  if (merge_alignment_check(adr.base(), prev_size_in_bytes, cur_offset, prev_offset)) {
+    return true;
+  }
+
+  return false;
+}
+
+bool MacroAssembler::try_merge_ldst_float(FloatRegister rt, const Address &adr, size_t size_in_bytes, bool is_store) {
+  if (ldst_can_merge_float(rt, adr, size_in_bytes, is_store)) {
+    merge_ldst_float(rt, adr, size_in_bytes, is_store);
+    code()->clear_last_insn();
+    return true;
+  } else {
+    assert(size_in_bytes == 8 || size_in_bytes == 4, "only 8 bytes or 4 bytes load/store is supported.");
+    const uint64_t mask = size_in_bytes - 1;
+    if (adr.getMode() == Address::base_plus_offset &&
+        (adr.offset() & mask) == 0) { // only supports base_plus_offset.
+      code()->set_last_insn(pc());
+    }
+    return false;
+  }
+}
+
+void MacroAssembler::merge_ldst_float(FloatRegister rt,
+                                      const Address &adr,
+                                      size_t cur_size_in_bytes,
+                                      bool is_store) {
+  assert(ldst_can_merge_float(rt, adr, cur_size_in_bytes, is_store) == true, "cur and prev must be able to be merged.");
+
+  FloatRegister rt_low, rt_high;
+  address prev = pc() - NativeInstruction::instruction_size;
+  NativeLdStFloat* prev_ldst = NativeLdStFloat_at(prev);
+
+  int64_t offset;
+
+  if (adr.offset() < prev_ldst->offset()) {
+    offset = adr.offset();
+    rt_low = rt;
+    rt_high = prev_ldst->target();
+  } else {
+    offset = prev_ldst->offset();
+    rt_low = prev_ldst->target();
+    rt_high = rt;
+  }
+
+  Address adr_p = Address(prev_ldst->base(), offset);
+  // Overwrite previous generated binary.
+  code_section()->set_end(prev);
+
+  const size_t sz = prev_ldst->size_in_bytes();
+  assert(sz == 8 || sz == 4, "only supports 64/32bit merging.");
+  if (!is_store) {
+    BLOCK_COMMENT("merged ldr float pair");
+    if (sz == 8) {
+      ldpd(rt_low, rt_high, adr_p);
+    } else {
+      ldps(rt_low, rt_high, adr_p);
+    }
+  } else {
+    BLOCK_COMMENT("merged str float pair");
+    if (sz == 8) {
+      stpd(rt_low, rt_high, adr_p);
+    } else {
+      stps(rt_low, rt_high, adr_p);
     }
   }
 }
