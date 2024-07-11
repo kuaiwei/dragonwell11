@@ -1881,10 +1881,15 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
 
   if(os::is_MP()) {
     if (UseMembar) {
-      __ strw(rscratch1, Address(rthread, JavaThread::thread_state_offset()));
+      if(UseNewCode2) {
+        __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
+        __ stlrw(rscratch1, rscratch2);
+      } else {
+        __ strw(rscratch1, Address(rthread, JavaThread::thread_state_offset()));
 
-      // Force this write out before the read below
-      __ dmb(Assembler::ISH);
+        // Force this write out before the read below
+        __ dmb(Assembler::ISH);
+      }
     } else {
       __ lea(rscratch2, Address(rthread, JavaThread::thread_state_offset()));
       __ stlrw(rscratch1, rscratch2);
