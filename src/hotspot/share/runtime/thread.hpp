@@ -72,12 +72,15 @@ class ConcurrentLocksDump;
 class ParkEvent;
 class Parker;
 
+class ArenaStatCounter;
+class BufferBlob;
 class ciEnv;
 class CompileThread;
 class CompileLog;
 class CompileTask;
 class CompileQueue;
 class CompilerCounters;
+class CompilerThread;
 class vframeArray;
 
 class DeoptResourceMark;
@@ -429,6 +432,12 @@ class Thread: public ThreadShadow {
 
   // Can this thread make Java upcalls
   virtual bool can_call_java() const                 { return false; }
+
+  // Convenience cast functions
+  CompilerThread* as_Compiler_thread() const {
+    assert(is_Compiler_thread(), "Must be compiler thread");
+    return (CompilerThread*)this;
+  }
 
   // Casts
   virtual WorkerThread* as_Worker_thread() const     { return NULL; }
@@ -958,8 +967,6 @@ class WatcherThread: public NonJavaThread {
   int sleep() const;
 };
 
-
-class CompilerThread;
 
 typedef void (*ThreadFunction)(JavaThread*, TRAPS);
 
@@ -2198,6 +2205,7 @@ class CompilerThread : public JavaThread {
   AbstractCompiler*     _compiler;
   TimeStamp             _idle_time;
 
+  ArenaStatCounter*     _arena_stat;
  public:
 
   static CompilerThread* current();
@@ -2217,6 +2225,7 @@ class CompilerThread : public JavaThread {
 
   CompileQueue* queue()        const             { return _queue; }
   CompilerCounters* counters() const             { return _counters; }
+  ArenaStatCounter* arena_stat() const           { return _arena_stat; }
 
   // Get/set the thread's compilation environment.
   ciEnv*        env()                            { return _env; }

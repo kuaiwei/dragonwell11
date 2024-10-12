@@ -93,6 +93,8 @@ class WispPostStealHandleUpdateMark;
 //------------------------------Arena------------------------------------------
 // Fast allocation of memory
 class Arena : public CHeapObj<mtNone> {
+public:
+
 protected:
   friend class ResourceMark;
   friend class HandleMark;
@@ -102,6 +104,7 @@ protected:
 
   MEMFLAGS    _flags;           // Memory tracking flags
 
+  const MEMTAG  _tag;
   Chunk *_first;                // First chunk
   Chunk *_chunk;                // current chunk
   char *_hwm, *_max;            // High water mark and max in current chunk
@@ -129,8 +132,8 @@ protected:
  }
 
  public:
-  Arena(MEMFLAGS memflag);
-  Arena(MEMFLAGS memflag, size_t init_size);
+  Arena(MEMFLAGS memflag, MEMTAG tag = tag_other);
+  Arena(MEMFLAGS memflag, MEMTAG tag, size_t init_size);
   ~Arena();
   void  destruct_contents();
   char* hwm() const             { return _hwm; }
@@ -228,6 +231,8 @@ protected:
   // Total # of bytes used
   size_t size_in_bytes() const         {  return _size_in_bytes; };
   void set_size_in_bytes(size_t size);
+
+  MEMTAG get_tag() const { return _tag; }
 
   static void free_malloced_objects(Chunk* chunk, char* hwm, char* max, char* hwm2)  PRODUCT_RETURN;
   static void free_all(char** start, char** end)                                     PRODUCT_RETURN;

@@ -183,13 +183,13 @@ class HandleArea: public Arena {
   HandleArea* _prev;          // link to outer (older) area
  public:
   // Constructor
-  HandleArea(HandleArea* prev) : Arena(mtThread, Chunk::tiny_size) {
+  HandleArea(HandleArea* prev) : Arena(mtThread, tag_ha, Chunk::tiny_size) {
     debug_only(_handle_mark_nesting    = 0);
     debug_only(_no_handle_mark_nesting = 0);
     _prev = prev;
   }
   // Only coroutine uses this constructor
-  HandleArea(HandleArea* prev, size_t init_size) : Arena(mtThread, init_size) {
+  HandleArea(HandleArea* prev, size_t init_size) : Arena(mtThread, tag_ha, init_size) {
     assert(EnableCoroutine, "EnableCoroutine is off");
     debug_only(_handle_mark_nesting    = 0);
     debug_only(_no_handle_mark_nesting = 0);

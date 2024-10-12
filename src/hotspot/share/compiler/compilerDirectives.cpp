@@ -179,6 +179,14 @@ DirectiveSet* CompilerDirectives::get_for(AbstractCompiler *comp) {
   }
 }
 
+bool DirectiveSet::should_collect_memstat() const {
+  return MemStatOption;
+}
+
+bool DirectiveSet::should_print_memstat() const {
+  return MemStatOption;
+}
+
 // In the list of disabled intrinsics, the ID of the disabled intrinsics can separated:
 // - by ',' (if -XX:DisableIntrinsic is used once when invoking the VM) or
 // - by '\n' (if -XX:DisableIntrinsic is used multiple times when invoking the VM) or
@@ -276,6 +284,14 @@ DirectiveSet* DirectiveSet::compilecommand_compatibility_init(const methodHandle
     if (CompilerOracle::should_exclude(method)) {
       if (!_modified[ExcludeIndex]) {
         set->ExcludeOption = true;
+        changed = true;
+      }
+    }
+
+    // MemStat
+    if (CompilerOracle::should_collect_memstat(method)) {
+      if (!_modified[MemStatIndex]) {
+        set->MemStatOption = true;
         changed = true;
       }
     }

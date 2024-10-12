@@ -76,7 +76,7 @@ void SymbolTable::initialize_symbols(int arena_alloc_size) {
   if (arena_alloc_size == 0) {
     _arena = new (mtSymbol) Arena(mtSymbol);
   } else {
-    _arena = new (mtSymbol) Arena(mtSymbol, arena_alloc_size);
+    _arena = new (mtSymbol) Arena(mtSymbol, tag_other, symbol_alloc_arena_size);
   }
 }
 

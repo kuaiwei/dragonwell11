@@ -110,6 +110,7 @@ void CompileTask::initialize(int compile_id,
   _time_started = 0;
   _compile_reason = compile_reason;
   _failure_reason = NULL;
+  _directive = NULL;
 
   if (LogCompilation) {
     if (hot_method.not_null()) {

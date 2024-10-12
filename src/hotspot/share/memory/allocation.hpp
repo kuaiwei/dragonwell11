@@ -143,6 +143,14 @@ enum MemoryType {
 
 typedef MemoryType MEMFLAGS;
 
+enum ArenaTag {
+  tag_other = 0,
+  tag_ra,   // resource area
+  tag_ha,   // handle area
+  tag_node  // C2 Node arena
+};
+
+typedef ArenaTag MEMTAG;
 
 #if INCLUDE_NMT
 

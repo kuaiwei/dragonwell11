@@ -83,6 +83,7 @@ enum OracleCommand {
   CompileOnlyCommand,
   LogCommand,
   OptionCommand,
+  MemStatCommand,
   QuietCommand,
   HelpCommand,
   OracleCommandCount
@@ -98,6 +99,7 @@ static const char * command_names[] = {
   "compileonly",
   "log",
   "option",
+  "MemStat",
   "quiet",
   "help"
 };
@@ -108,6 +110,7 @@ class TypedMethodOptionMatcher;
 static BasicMatcher* lists[OracleCommandCount] = { 0, };
 static TypedMethodOptionMatcher* option_list = NULL;
 static bool any_set = false;
+static bool print_final_memstat_report = false;
 
 class TypedMethodOptionMatcher : public MethodMatcher {
  private:
@@ -363,11 +366,38 @@ bool CompilerOracle::should_print_methods() {
   return lists[PrintCommand] != NULL;
 }
 
+// Tells whether there are any methods to collect memory statistics for
+bool CompilerOracle::should_collect_memstat(const methodHandle& method) {
+  return check_predicate(MemStatCommand, method);
+}
+
+bool CompilerOracle::should_print_final_memstat_report(const methodHandle& method) {
+  // TODO:
+  return check_predicate(MemStatCommand, method);
+}
+
 bool CompilerOracle::should_log(const methodHandle& method) {
   if (!LogCompilation)            return false;
   if (lists[LogCommand] == NULL)  return true;  // by default, log all
   return (check_predicate(LogCommand, method));
 }
+
+/*
+static bool parseEnumValueAsUintx(enum CompileCommand option, const char* line, uintx& value, int& bytes_read, char* errorbuf, const int buf_size) {
+  if (option == CompileCommand::MemStat) {
+    if (strncasecmp(line, "collect", 7) == 0) {
+      value = (uintx)MemStatAction::collect;
+    } else if (strncasecmp(line, "print", 5) == 0) {
+      value = (uintx)MemStatAction::print;
+      print_final_memstat_report = true;
+    } else {
+      jio_snprintf(errorbuf, buf_size, "MemStat: invalid value expected 'collect' or 'print' (omitting value means 'collect')");
+    }
+    return true; // handled
+  }
+  return false;
+}
+*/
 
 bool CompilerOracle::should_break_at(const methodHandle& method) {
   return check_predicate(BreakCommand, method);
@@ -379,9 +409,12 @@ static OracleCommand parse_command_name(const char * line, int* bytes_read) {
 
   *bytes_read = 0;
   char command[33];
-  int matches = sscanf(line, "%32[a-z]%n", command, bytes_read);
+  int matches = sscanf(line, "%32[a-zA-Z]%n", command, bytes_read);
   if (matches > 0) {
     for (uint i = 0; i < ARRAY_SIZE(command_names); i++) {
+      if (strcmp(command, command_names[MemStatCommand]) == 0) {
+        CompilerOracle::_collect_mem_stat = true;
+      }
       if (strcmp(command, command_names[i]) == 0) {
         return (OracleCommand)i;
       }
@@ -552,6 +585,7 @@ int skip_whitespace(char* line) {
   return whitespace_read;
 }
 
+
 void CompilerOracle::print_parse_error(const char*&  error_msg, char* original_line) {
   assert(error_msg != NULL, "Must have error_message");
 
@@ -696,6 +730,7 @@ bool CompilerOracle::has_command_file() {
 }
 
 bool CompilerOracle::_quiet = false;
+bool CompilerOracle::_collect_mem_stat = false;
 
 void CompilerOracle::parse_from_file() {
   assert(has_command_file(), "command file must be specified");

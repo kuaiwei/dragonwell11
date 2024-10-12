@@ -687,8 +687,8 @@ Compile::Compile( ciEnv* ci_env, C2Compiler* compiler, ciMethod* target, int osr
                   NOT_PRODUCT(_printer(NULL) COMMA)
                   _congraph(NULL),
                   _comp_arena(mtCompiler),
-                  _node_arena(mtCompiler),
-                  _old_arena(mtCompiler),
+                  _node_arena(mtCompiler, tag_node),
+                  _old_arena(mtCompiler, tag_node),
                   _Compile_types(mtCompiler),
                   _replay_inline_data(NULL),
                   _late_inlines(comp_arena(), 2, 0, NULL),

@@ -101,6 +101,7 @@ class CompileTask : public CHeapObj<mtCompiler> {
   int          _hot_count;    // information about its invocation counter
   CompileReason _compile_reason;      // more info about the task
   const char*  _failure_reason;
+  DirectiveSet* _directive;
 
  public:
   CompileTask() {
@@ -131,6 +132,8 @@ class CompileTask : public CHeapObj<mtCompiler> {
         return false;
     }
   }
+  DirectiveSet* directive() const { return _directive; }
+  void set_directive(DirectiveSet* v) { _directive = v; }
 #if INCLUDE_JVMCI
   bool         should_wait_for_compilation() const {
     // Wait for blocking compilation to finish.
