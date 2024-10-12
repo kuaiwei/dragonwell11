@@ -38,6 +38,7 @@
     cflags(BreakAtExecute,          bool, false, X) \
     cflags(BreakAtCompile,          bool, false, X) \
     cflags(Log,                     bool, LogCompilation, X) \
+    cflags(MemStat,                 bool, false, X) \
     cflags(PrintAssembly,           bool, PrintAssembly, PrintAssembly) \
     cflags(PrintInlining,           bool, PrintInlining, PrintInlining) \
     cflags(PrintNMethods,           bool, PrintNMethods, PrintNMethods) \
@@ -116,6 +117,8 @@ public:
   bool is_intrinsic_disabled(const methodHandle& method);
   static ccstrlist canonicalize_disableintrinsic(ccstrlist option_value);
   void finalize(outputStream* st);
+  bool should_collect_memstat() const;
+  bool should_print_memstat() const;
 
   typedef enum {
 #define enum_of_flags(name, type, dvalue, cc_flag) name##Index,

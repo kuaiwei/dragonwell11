@@ -28,6 +28,10 @@
 #include "memory/allocation.hpp"
 #include "oops/oopsHierarchy.hpp"
 
+enum MemStatAction {
+  collect = 1, print = 2
+};
+
 // CompilerOracle is an interface for turning on and off compilation
 // for some methods
 
@@ -38,6 +42,7 @@ class CompilerOracle : AllStatic {
   static void print_parse_error(const char*&  error_msg, char* original_line);
 
  public:
+  static bool _collect_mem_stat;
 
   // True if the command file has been specified or is implicit
   static bool has_command_file();
@@ -57,6 +62,11 @@ class CompilerOracle : AllStatic {
 
   // Tells whether we should print the assembly for this method
   static bool should_print(const methodHandle& method);
+
+  // Tells whether there are any methods to (collect|collect+print) memory statistics for
+  static bool should_collect_memstat() { return _collect_mem_stat; }
+  static bool should_collect_memstat(const methodHandle& method);
+  static bool should_print_final_memstat_report(const methodHandle& method);
 
   // Tells whether we should log the compilation data for this method
   static bool should_log(const methodHandle& method);

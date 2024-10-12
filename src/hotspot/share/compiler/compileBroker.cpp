@@ -31,6 +31,7 @@
 #include "code/codeHeapState.hpp"
 #include "code/dependencyContext.hpp"
 #include "compiler/compileBroker.hpp"
+#include "compiler/compilationMemoryStatistic.hpp"
 #include "compiler/compileLog.hpp"
 #include "compiler/compilerOracle.hpp"
 #include "compiler/directivesParser.hpp"
@@ -650,6 +651,10 @@ void CompileBroker::compilation_init_phase1(TRAPS) {
     }
   }
 #endif // COMPILER2
+       //
+  if (CompilerOracle::should_collect_memstat()) {
+    CompilationMemoryStatistic::initialize();
+  }
 
   // Start the compiler thread(s) and the sweeper thread
   init_compiler_sweeper_threads();
@@ -2180,6 +2185,7 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
           locker.wait(Mutex::_no_safepoint_check_flag);
         }
       }
+      task->set_directive(directive);  // for memory statistic
       comp->compile_method(&ci_env, target, osr_bci, directive);
     }
 

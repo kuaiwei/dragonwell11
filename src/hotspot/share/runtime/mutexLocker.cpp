@@ -155,6 +155,7 @@ Mutex*   ThreadIdTableCreate_lock     = NULL;
 Monitor* ThreadsSMRDelete_lock       = NULL;
 Mutex*   SharedDecoder_lock           = NULL;
 Mutex*   DCmdFactory_lock             = NULL;
+Mutex*   NMTCompilationCostHistory_lock = NULL;
 
 SystemDictMonitor* SystemDictionary_lock = NULL;
 
@@ -394,6 +395,7 @@ void mutex_init() {
   def(ThreadsSMRDelete_lock        , PaddedMonitor, special,     false, Monitor::_safepoint_check_never);
   def(SharedDecoder_lock           , PaddedMutex  , native,      false, Monitor::_safepoint_check_never);
   def(DCmdFactory_lock             , PaddedMutex  , leaf,        true,  Monitor::_safepoint_check_never);
+  def(NMTCompilationCostHistory_lock  , PaddedMutex  , leaf,     true,  Monitor::_safepoint_check_never);
 #if INCLUDE_CDS && INCLUDE_JVMTI
   def(CDSClassFileStream_lock      , PaddedMutex  , max_nonleaf, false, Monitor::_safepoint_check_always);
 #endif

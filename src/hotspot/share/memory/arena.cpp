@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "compiler/compilationMemoryStatistic.hpp"
 #include "memory/allocation.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/metaspaceShared.hpp"
@@ -246,7 +247,7 @@ void Chunk::start_chunk_pool_cleaner_task() {
 
 //------------------------------Arena------------------------------------------
 
-Arena::Arena(MEMFLAGS flag, size_t init_size) : _flags(flag), _size_in_bytes(0)  {
+Arena::Arena(MEMFLAGS flag, MEMTAG tag, size_t init_size) : _flags(flag), _tag(tag), _size_in_bytes(0)  {
   size_t round_size = (sizeof (char *)) - 1;
   init_size = (init_size+round_size) & ~round_size;
   _first = _chunk = new (AllocFailStrategy::EXIT_OOM, init_size) Chunk(init_size);
@@ -256,7 +257,7 @@ Arena::Arena(MEMFLAGS flag, size_t init_size) : _flags(flag), _size_in_bytes(0) 
   set_size_in_bytes(init_size);
 }
 
-Arena::Arena(MEMFLAGS flag) : _flags(flag), _size_in_bytes(0) {
+Arena::Arena(MEMFLAGS flag, MEMTAG tag) : _flags(flag), _tag(tag), _size_in_bytes(0) {
   _first = _chunk = new (AllocFailStrategy::EXIT_OOM, Chunk::init_size) Chunk(Chunk::init_size);
   _hwm = _chunk->bottom();      // Save the cached hwm, max
   _max = _chunk->top();
@@ -331,6 +332,12 @@ void Arena::set_size_in_bytes(size_t size) {
     ssize_t delta = size - size_in_bytes();
     _size_in_bytes = size;
     MemTracker::record_arena_size_change(delta, _flags);
+    if (CompilationMemoryStatistic::enabled() && _flags == mtCompiler) {
+      Thread* const t = Thread::current();
+      if (t != NULL && t->is_Compiler_thread()) {
+        CompilationMemoryStatistic::on_arena_change(delta, this);
+      }
+    }
   }
 }
 

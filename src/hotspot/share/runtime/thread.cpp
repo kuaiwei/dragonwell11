@@ -32,6 +32,7 @@
 #include "classfile/vmSymbols.hpp"
 #include "code/codeCache.hpp"
 #include "code/scopeDesc.hpp"
+#include "compiler/compilationMemoryStatistic.hpp"
 #include "compiler/compileBroker.hpp"
 #include "compiler/compileTask.hpp"
 #include "gc/shared/barrierSet.hpp"
@@ -3581,6 +3582,7 @@ CompilerThread::CompilerThread(CompileQueue* queue,
 
   // Compiler uses resource area for compilation, let's bias it to mtCompiler
   resource_area()->bias_to(mtCompiler);
+  _arena_stat = CompilationMemoryStatistic::enabled() ? new ArenaStatCounter : NULL;
 
 #ifndef PRODUCT
   _ideal_graph_printer = NULL;
@@ -3590,6 +3592,7 @@ CompilerThread::CompilerThread(CompileQueue* queue,
 CompilerThread::~CompilerThread() {
   // Delete objects which were allocated on heap.
   delete _counters;
+  delete _arena_stat;
 }
 
 bool CompilerThread::can_call_java() const {
