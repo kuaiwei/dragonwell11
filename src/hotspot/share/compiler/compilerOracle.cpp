@@ -409,7 +409,7 @@ static OracleCommand parse_command_name(const char * line, int* bytes_read) {
 
   *bytes_read = 0;
   char command[33];
-  int matches = sscanf(line, "%32[a-z]%n", command, bytes_read);
+  int matches = sscanf(line, "%32[a-zA-Z]%n", command, bytes_read);
   if (matches > 0) {
     for (uint i = 0; i < ARRAY_SIZE(command_names); i++) {
       if (strcmp(command, command_names[MemStatCommand]) == 0) {
