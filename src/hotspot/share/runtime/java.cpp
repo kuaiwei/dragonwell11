@@ -386,7 +386,7 @@ void print_statistics() {
   }
 
   if (CompilerOracle::should_collect_memstat()) {
-    CompilationMemoryStatistic::print_all_by_size(tty, false, 0);
+    CompilationMemoryStatistic::print_all_by_size(tty, true, 0);
   }
 
   ThreadsSMRSupport::log_statistics();
@@ -438,6 +438,10 @@ void print_statistics() {
 
   if (LogTouchedMethods && PrintTouchedMethodsAtExit) {
     Method::print_touched_methods(tty);
+  }
+
+  if (CompilerOracle::should_collect_memstat()) {
+    CompilationMemoryStatistic::print_all_by_size(tty, false, 0);
   }
 
   ThreadsSMRSupport::log_statistics();
