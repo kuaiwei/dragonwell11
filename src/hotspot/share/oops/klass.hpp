@@ -369,7 +369,8 @@ private:
   static uintx   compute_secondary_supers_bitmap(Array<Klass*>* secondary_supers);
   static uint8_t compute_home_slot(Klass* k, uintx bitmap);
 
-  static const int SECONDARY_SUPERS_TABLE_SIZE = sizeof(_bitmap) * 8;
+  // static const int SECONDARY_SUPERS_TABLE_SIZE = sizeof(_bitmap) * 8;
+  static const int SECONDARY_SUPERS_TABLE_SIZE = sizeof(uintx) * 8;
   static const int SECONDARY_SUPERS_TABLE_MASK = SECONDARY_SUPERS_TABLE_SIZE - 1;
 
   static const uintx SECONDARY_SUPERS_BITMAP_EMPTY    = 0;

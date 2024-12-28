@@ -48,11 +48,13 @@
 #include "services/threadService.hpp"
 #include "utilities/stringUtils.hpp"
 
+#if INCLUDE_CDS
 jshort ClassLoaderExt::_app_class_paths_start_index = ClassLoaderExt::max_classpath_index;
 jshort ClassLoaderExt::_app_module_paths_start_index = ClassLoaderExt::max_classpath_index;
 jshort ClassLoaderExt::_max_used_path_index = 0;
 bool ClassLoaderExt::_has_app_classes = false;
 bool ClassLoaderExt::_has_platform_classes = false;
+#endif
 
 void ClassLoaderExt::append_boot_classpath(ClassPathEntry* new_entry) {
 #if INCLUDE_CDS
@@ -64,6 +66,7 @@ void ClassLoaderExt::append_boot_classpath(ClassPathEntry* new_entry) {
   ClassLoader::add_to_boot_append_entries(new_entry);
 }
 
+#if INCLUDE_CDS
 void ClassLoaderExt::setup_app_search_path() {
   assert(DumpSharedSpaces, "this function is only used with -Xshare:dump");
   _app_class_paths_start_index = ClassLoader::num_boot_classpath_entries();
@@ -94,6 +97,7 @@ void ClassLoaderExt::process_module_table(ModuleEntryTable* met, TRAPS) {
     }
   }
 }
+
 void ClassLoaderExt::setup_module_paths(TRAPS) {
   assert(DumpSharedSpaces, "this function is only used with -Xshare:dump");
   _app_module_paths_start_index = ClassLoader::num_boot_classpath_entries() +
@@ -162,6 +166,7 @@ char* ClassLoaderExt::get_class_path_attr(const char* jar_path, char* manifest, 
   }
   return found;
 }
+#endif
 
 void ClassLoaderExt::process_jar_manifest(ClassPathEntry* entry,
                                           bool check_for_duplicates) {
@@ -223,10 +228,12 @@ void ClassLoaderExt::process_jar_manifest(ClassPathEntry* entry,
   }
 }
 
+#if INCLUDE_CDS
 void ClassLoaderExt::setup_search_paths() {
   shared_paths_misc_info()->record_app_offset();
   ClassLoaderExt::setup_app_search_path();
 }
+#endif
 
 void ClassLoaderExt::record_result(const s2 classpath_index,
                                    InstanceKlass* result,
