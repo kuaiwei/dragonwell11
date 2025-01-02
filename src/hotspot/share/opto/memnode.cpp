@@ -2840,6 +2840,9 @@ StoreNode* MergePrimitiveArrayStores::run() {
       type2aelembytes(aryptr_t->elem()->array_element_basic_type()) != _store->memory_size()) {
     return NULL;
   }
+  if (_store->is_unsafe_access()) {
+    return NULL;
+  }
 
   // The _store must be the "last" store in a chain. If we find a use we could merge with
   // then that use or a store further down is the "last" store.
@@ -2873,10 +2876,12 @@ bool MergePrimitiveArrayStores::is_compatible_store(const StoreNode* other_store
   int opc = _store->Opcode();
   assert(opc == Op_StoreB || opc == Op_StoreC || opc == Op_StoreI, "precondition");
   assert(_store->adr_type()->isa_aryptr() != NULL, "must be array store");
+  assert(!_store->is_unsafe_access(), "no unsafe accesses");
 
   if (other_store == NULL ||
       _store->Opcode() != other_store->Opcode() ||
-      other_store->adr_type()->isa_aryptr() == NULL) {
+      other_store->adr_type()->isa_aryptr() == NULL ||
+      other_store->is_unsafe_access()) {
     return false;
   }
 
