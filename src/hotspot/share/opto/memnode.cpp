@@ -2840,8 +2840,12 @@ StoreNode* MergePrimitiveArrayStores::run() {
     return NULL;
   }
   const TypeAryPtr* aryptr_t = ptr_t->isa_aryptr();
-  if (aryptr_t == NULL ||
-      type2aelembytes(aryptr_t->elem()->array_element_basic_type()) != _store->memory_size()) {
+  if (aryptr_t == NULL) {
+    return NULL;
+  }
+  BasicType bt = aryptr_t->elem()->array_element_basic_type();
+  if (!is_java_primitive(bt) ||
+      type2aelembytes(bt) != _store->memory_size()) {
     return NULL;
   }
   if (_store->is_unsafe_access()) {
@@ -2893,8 +2897,13 @@ bool MergePrimitiveArrayStores::is_compatible_store(const StoreNode* other_store
   // Check that the size of the stores, and the array elements are all the same.
   const TypeAryPtr* aryptr_t1 = _store->adr_type()->is_aryptr();
   const TypeAryPtr* aryptr_t2 = other_store->adr_type()->is_aryptr();
-  int size1 = type2aelembytes(aryptr_t1->elem()->array_element_basic_type());
-  int size2 = type2aelembytes(aryptr_t2->elem()->array_element_basic_type());
+  BasicType aryptr_bt1 = aryptr_t1->elem()->array_element_basic_type();
+  BasicType aryptr_bt2 = aryptr_t2->elem()->array_element_basic_type();
+  if (!is_java_primitive(aryptr_bt1) || !is_java_primitive(aryptr_bt2)) {
+    return false;
+  }
+  int size1 = type2aelembytes(aryptr_bt1);
+  int size2 = type2aelembytes(aryptr_bt2);
   if (size1 != size2 ||
       size1 != _store->memory_size() ||
       _store->memory_size() != other_store->memory_size()) {
