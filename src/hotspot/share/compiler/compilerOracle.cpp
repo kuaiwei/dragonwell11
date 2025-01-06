@@ -83,6 +83,7 @@ enum OracleCommand {
   CompileOnlyCommand,
   LogCommand,
   OptionCommand,
+  BlackholeCommand,
   QuietCommand,
   HelpCommand,
   OracleCommandCount
@@ -98,6 +99,7 @@ static const char * command_names[] = {
   "compileonly",
   "log",
   "option",
+  "blackhole",
   "quiet",
   "help"
 };
@@ -373,6 +375,37 @@ bool CompilerOracle::should_break_at(const methodHandle& method) {
   return check_predicate(BreakCommand, method);
 }
 
+void CompilerOracle::tag_blackhole_if_possible(const methodHandle& method) {
+  if (!check_predicate(BlackholeCommand, method)) {
+    return;
+  }
+  guarantee(UnlockExperimentalVMOptions, "Checked during initial parsing");
+  if (method->result_type() != T_VOID) {
+    warning("Blackhole compile option only works for methods with void type: %s",
+            method->name_and_sig_as_C_string());
+    return;
+  }
+  if (!method->is_empty_method()) {
+    warning("Blackhole compile option only works for empty methods: %s",
+            method->name_and_sig_as_C_string());
+    return;
+  }
+  if (!method->is_static()) {
+    warning("Blackhole compile option only works for static methods: %s",
+            method->name_and_sig_as_C_string());
+    return;
+  }
+  if (method->intrinsic_id() == vmIntrinsics::_blackhole) {
+    return;
+  }
+  if (method->intrinsic_id() != vmIntrinsics::_none) {
+    warning("Blackhole compile option only works for methods that do not have intrinsic set: %s, %s",
+            method->name_and_sig_as_C_string(), vmIntrinsics::name_at(method->intrinsic_id()));
+    return;
+  }
+  method->set_intrinsic_id(vmIntrinsics::_blackhole);
+}
+
 static OracleCommand parse_command_name(const char * line, int* bytes_read) {
   assert(ARRAY_SIZE(command_names) == OracleCommandCount,
          "command_names size mismatch");
@@ -587,6 +620,11 @@ void CompilerOracle::parse_from_line(char* line) {
 
   if (command == HelpCommand) {
     usage();
+    return;
+  }
+
+  if (command == BlackholeCommand && !UnlockExperimentalVMOptions) {
+    warning("Blackhole compile option is experimental and must be enabled via -XX:+UnlockExperimentalVMOptions");
     return;
   }
 

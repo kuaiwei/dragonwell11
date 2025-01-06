@@ -3839,6 +3839,8 @@ void Compile::final_graph_reshaping_impl( Node *n, Final_Reshape_Counts &frc) {
     assert(false, "should have been expanded already");
     break;
 #endif
+  case Op_Blackhole:
+    break;
   case Op_RangeCheck: {
     RangeCheckNode* rc = n->as_RangeCheck();
     Node* iff = new IfNode(rc->in(0), rc->in(1), rc->_prob, rc->_fcnt);

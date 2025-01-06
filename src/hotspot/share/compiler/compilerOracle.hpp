@@ -58,6 +58,9 @@ class CompilerOracle : AllStatic {
   // Tells whether we should print the assembly for this method
   static bool should_print(const methodHandle& method);
 
+  // Tags the method as blackhole candidate, if possible.
+  static void tag_blackhole_if_possible(const methodHandle& method);
+
   // Tells whether we should log the compilation data for this method
   static bool should_log(const methodHandle& method);
 

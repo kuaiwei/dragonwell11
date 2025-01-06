@@ -41,6 +41,7 @@ class AliasInfo;
 class AllocateArrayNode;
 class AllocateNode;
 class ArrayCopyNode;
+class BlackholeNode;
 class Block;
 class BoolNode;
 class BoxLockNode;
