@@ -5532,6 +5532,11 @@ static void check_methods_for_intrinsics(const InstanceKlass* ik,
           // is defined for it.
           continue;
         }
+        if (vmIntrinsics::_blackhole == id) {
+          // The _blackhole intrinsic is a special marker. No explicit method
+          // is defined for it.
+          continue;
+        }
 
         if (vmIntrinsics::class_for(vmIntrinsics::ID_from(id)) == klass_id) {
           // Check if the current class contains a method with the same

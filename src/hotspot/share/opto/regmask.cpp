@@ -114,6 +114,13 @@ const RegMask RegMask::Empty(
   0
 );
 
+const RegMask RegMask::All(
+# define BODY(I) -1,
+  FORALL_BODY
+# undef BODY
+  0
+);
+
 //=============================================================================
 bool RegMask::is_vector(uint ireg) {
   return (ireg == Op_VecS || ireg == Op_VecD ||

@@ -115,7 +115,7 @@ JVMState* LibraryIntrinsic::generate(JVMState* jvms) {
   const int bci    = kit.bci();
 
   // Try to inline the intrinsic.
-  if ((CheckIntrinsics ? callee->intrinsic_candidate() : true) &&
+  if (callee->check_intrinsic_candidate() &&
       kit.try_to_inline(_last_predicate)) {
     const char *inline_msg = is_virtual() ? "(intrinsic, virtual)"
                                           : "(intrinsic)";
@@ -656,6 +656,9 @@ bool LibraryCallKit::try_to_inline(int predicate) {
   case vmIntrinsics::_VectorExtract:
     return inline_vector_extract();
 
+  case vmIntrinsics::_blackhole:
+    return inline_blackhole();
+
   default:
     // If you get here, it may be that someone has added a new intrinsic
     // to the list in vmSymbols.hpp without implementing it here.
@@ -667,6 +670,26 @@ bool LibraryCallKit::try_to_inline(int predicate) {
 #endif
     return false;
   }
+}
+
+//------------------------------- inline_blackhole --------------------------------------
+//
+// Make sure all arguments to this node are alive.
+// This matches methods that were requested to be blackholed through compile commands.
+//
+bool LibraryCallKit::inline_blackhole() {
+  assert(callee()->is_static(), "Should have been checked before: only static methods here");
+  assert(callee()->is_empty(), "Should have been checked before: only empty methods here");
+  assert(callee()->holder()->is_loaded(), "Should have been checked before: only methods for loaded classes here");
+
+  // Bind call arguments as blackhole arguments to keep them alive
+  Node* bh = insert_mem_bar(Op_Blackhole);
+  uint nargs = callee()->arg_size();
+  for (uint i = 0; i < nargs; i++) {
+    bh->add_req(argument(i));
+  }
+
+  return true;
 }
 
 Node* LibraryCallKit::try_to_predicate(int predicate) {

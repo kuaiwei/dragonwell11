@@ -343,5 +343,7 @@ class LibraryCallKit : public GraphKit {
     }
 #endif
   }
+
+  bool inline_blackhole();
 };
 
